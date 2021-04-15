@@ -1,9 +1,14 @@
 ﻿@page
+@using Microsoft.AspNetCore.Antiforgery
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 @model WebApp.Areas.TiposNegocio.Pages.IndexModel
+@inject IAntiforgery antiforgery
 @{
     ViewData["Title"] = "Tipos de Negocio";
     Layout = "_Layout";
+    var tokenSet = antiforgery.GetAndStoreTokens(HttpContext);
 }
+
 @section Styles {
     <!-- SweetAlert2 -->
     <link rel="stylesheet" href="~/plugins/sweetalert2-theme-bootstrap-4/bootstrap-4.min.css">
@@ -33,7 +38,7 @@
         <div class="card-header">
             <div class="card-title">Listado de @ViewData["Title"]</div>
             <div class="card-tools">
-                <a asp-area="Departamentos" asp-page="Create" class="btn btn-outline-primary"><i class="fas fa-plus"></i> Nuevo Registro</a>
+                <a asp-area="TiposNegocio" asp-page="Create" class="btn btn-outline-primary"><i class="fas fa-plus"></i> Nuevo Registro</a>
             </div>
         </div>
         <div class="card-body table-responsive-md p-3">
@@ -82,7 +87,7 @@
                             <tr>
                                 <td>@item.Nombre</td>
                                 <td style="width:8%" class="project-state text-center text-lg">
-                                    @if(item.Activo)
+                                    @if (item.Activo)
                                     {
                                         @Html.Raw("<span class='badge bg-success'>Activo</span>")
                                     }
@@ -92,7 +97,7 @@
                                     }
                                 </td>
                                 <td style="width:20%" class="project-actions text-center">
-                                    <a class="btn btn-info btn-sm" title="Editar" asp-area="Departamentos" asp-page="Edit" asp-route-id="@item.Id">
+                                    <a class="btn btn-info btn-sm" title="Editar" asp-area="TiposNegocio" asp-page="Edit" asp-route-id="@item.Id">
                                         <i class="fas fa-pencil-alt">
                                         </i>
                                     </a>
@@ -128,6 +133,69 @@
     <script type="text/javascript" language=javascript>
         $(document).ready(function () {
             $('#a-tiponegocio').addClass('active');
+
+          jQueryModalDelete = (url) => {
+                Swal.fire({
+                    title: '¿Esta seguro que quiere eliminar el registro?',
+                    text: "¡Este proceso es irreversible!",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#3085d6',
+                    cancelButtonColor: '#d33',
+                    confirmButtonText: '¡Si, borrarlo!',
+                    cancelButtonText: 'Cancelar'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                         try {
+                            $.ajax({
+                                type: 'POST',
+                                url: url,
+                                contentType: false,
+                                processData: false,
+                                headers: {
+                                    '@tokenSet.HeaderName' : '@tokenSet.RequestToken'
+                                },
+                                success: function (res) {
+                                    if (res.deleted) {
+                                        Swal.fire({
+                                            icon: 'success',
+                                            title: '¡Registro eliminado exitosamente!',
+                                            showConfirmButton: false,
+                                            timer: 2000
+                                        })
+                                        setTimeout(function () { location.reload(); }, 2000);
+                                    }
+                                },
+                                error: function (err) {
+                                    console.log(err);
+                                    Swal.fire({
+                                        icon: 'error',
+                                        title: 'Oops...',
+                                        text: 'Algo salio mal!',
+                                        footer: '<a href>¿Tienes alguna duda de este error?</a>'
+                                    })
+                                }
+                            })
+                        } catch (ex) {
+                            console.log(ex)
+                        }
+                    }
+                })
+                return false;
+            }
+
+            $('#sizePage').change(function () {
+                filterPaginate("sizePage", $(this).val());
+            });
+            $('.page-link').click(function () {
+                filterPaginate("currentPage", $(this).data("page"));
+            });
+            $('#searchString').on('keyup', function (e) {
+                if (e.key === 'Enter' || e.keyCode === 13) {
+                    filterPaginate("searchString", $(this).val());
+                }
+            });
         });
     </script>
+    @await Component.InvokeAsync("Notyf")
 }

@@ -1,4 +1,10 @@
+using ApplicationCore.Interfaces;
+using AspNetCoreHero.ToastNotification;
+using AspNetCoreHero.ToastNotification.Extensions;
+using FluentValidation.AspNetCore;
 using Infraestructure.Data;
+using Infraestructure.Data.Repositories;
+using Infraestructure.Logging;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
@@ -10,6 +16,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using WebApp.Areas.TiposNegocio.Validation;
 
 namespace WebApp
 {
@@ -26,6 +33,12 @@ namespace WebApp
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddDbContext<ApplicationDbContext>(o => o.UseSqlServer(Configuration.GetConnectionString("AppConnection")));
+            services.AddMvc().AddFluentValidation(fv => fv.RegisterValidatorsFromAssemblyContaining<TipoNegocioValidator>());
+            services.AddScoped(typeof(IAppLogger<>), typeof(LoggerAdapter<>));
+            services.AddScoped(typeof(MyRepository<>));
+            services.AddScoped(typeof(IRepository<>), typeof(MyRepository<>));
+
+            services.AddNotyf(config => { config.DurationInSeconds = 10; config.IsDismissable = true; config.Position = NotyfPosition.BottomRight; });
             services.AddRazorPages();
         }
 
@@ -47,6 +60,8 @@ namespace WebApp
             app.UseStaticFiles();
 
             app.UseRouting();
+
+            app.UseNotyf();
 
             app.UseAuthorization();
 
